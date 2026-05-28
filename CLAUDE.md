@@ -44,5 +44,5 @@ GoReleaser on `vX.Y.Z` git tag. Produces cross-compiled binaries for Linux/macOS
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-specs/001-periodic-ping-monitor/plan.md
+specs/002-monitor-chart-output/plan.md
 <!-- SPECKIT END -->

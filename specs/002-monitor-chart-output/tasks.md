@@ -27,8 +27,8 @@ Single Go module at repo root: `cmd/pinger/`, `internal/monitor/`. No `src/` lay
 
 **Purpose**: Pull in the new dependencies and confirm a clean baseline.
 
-- [ ] T001 Add chart dependencies: run `go get github.com/guptarohit/asciigraph` and `go get golang.org/x/term`; verify `go.mod` + `go.sum` updated and `go build ./...` still succeeds.
-- [ ] T002 [P] Record clean baseline: run `golangci-lint run` and `go test ./...` on the current tree so post-change regressions are attributable.
+- [X] T001 Add chart dependencies: run `go get github.com/guptarohit/asciigraph` and `go get golang.org/x/term`; verify `go.mod` + `go.sum` updated and `go build ./...` still succeeds.
+- [X] T002 [P] Record clean baseline: run `golangci-lint run` and `go test ./...` on the current tree so post-change regressions are attributable.
 
 ---
 
@@ -38,11 +38,11 @@ Single Go module at repo root: `cmd/pinger/`, `internal/monitor/`. No `src/` lay
 
 **⚠️ CRITICAL**: No user story work begins until this phase completes.
 
-- [ ] T003 Define the `reporter` interface (`cycle(ts time.Time, rows []targetCycle)`, `final(ts time.Time, rows []targetCycle)`) and the `targetCycle` row struct (`Label`, `Sent`, `Errors`, `AvgMs`, `CycleMs *float64`) in `internal/monitor/reporter.go`.
-- [ ] T004 Add `displayMode` type (`log`, `chart`) and the pure `resolveDisplay(mode string, isTTY bool) (displayMode, error)` validator (unknown value → error naming valid values; `chart` + `!isTTY` → error pointing to `--display log`) in `internal/monitor/reporter.go`.
-- [ ] T005 Implement `logReporter` in `internal/monitor/reporter.go` writing to an injected `io.Writer`, reproducing today's exact per-cycle line format and final `TOTAL` + `monitor stopped` output (move the format strings out of `monitor.go` verbatim, including the `sent==0` skip).
-- [ ] T006 In `internal/monitor/monitor.go`: replace `Options.JSONOutput bool` with `Options.Display displayMode`; delete the `encoding/json` console branches; have `runCycle` build `[]targetCycle` and call `reporter.cycle`, and `printFinalSummary` call `reporter.final`. When building rows, capture each target's **this-cycle** RTT (`r.pr.RTTMs`) into `CycleMs` (nil on failure) during the collection loop, alongside the cumulative `Sent/Errors/AvgMs`. Construct a `logReporter` in `Run` for now (chart construction added in US1). (depends T003, T004, T005)
-- [ ] T007 In `cmd/pinger/main.go` `newMonitorCmd`: remove the `jsonOutput` var and the `--json` flag; add a `--display` string flag (default `log`); resolve it via `monitor.resolveDisplay(display, term.IsTerminal(int(os.Stdout.Fd())))` and return the error on failure; pass the resolved mode into `monitor.Options{Display: ...}`. (depends T004, T006)
+- [X] T003 Define the `reporter` interface (`cycle(ts time.Time, rows []targetCycle)`, `final(ts time.Time, rows []targetCycle)`) and the `targetCycle` row struct (`Label`, `Sent`, `Errors`, `AvgMs`, `CycleMs *float64`) in `internal/monitor/reporter.go`.
+- [X] T004 Add `displayMode` type (`log`, `chart`) and the pure `resolveDisplay(mode string, isTTY bool) (displayMode, error)` validator (unknown value → error naming valid values; `chart` + `!isTTY` → error pointing to `--display log`) in `internal/monitor/reporter.go`.
+- [X] T005 Implement `logReporter` in `internal/monitor/reporter.go` writing to an injected `io.Writer`, reproducing today's exact per-cycle line format and final `TOTAL` + `monitor stopped` output (move the format strings out of `monitor.go` verbatim, including the `sent==0` skip).
+- [X] T006 In `internal/monitor/monitor.go`: replace `Options.JSONOutput bool` with `Options.Display displayMode`; delete the `encoding/json` console branches; have `runCycle` build `[]targetCycle` and call `reporter.cycle`, and `printFinalSummary` call `reporter.final`. When building rows, capture each target's **this-cycle** RTT (`r.pr.RTTMs`) into `CycleMs` (nil on failure) during the collection loop, alongside the cumulative `Sent/Errors/AvgMs`. Construct a `logReporter` in `Run` for now (chart construction added in US1). (depends T003, T004, T005)
+- [X] T007 In `cmd/pinger/main.go` `newMonitorCmd`: remove the `jsonOutput` var and the `--json` flag; add a `--display` string flag (default `log`); resolve it via `monitor.resolveDisplay(display, term.IsTerminal(int(os.Stdout.Fd())))` and return the error on failure; pass the resolved mode into `monitor.Options{Display: ...}`. (depends T004, T006)
 
 **Checkpoint**: `go build ./...` passes; `monitor` (default and `--display log`) behaves exactly as before; `monitor --json` is an unknown flag; `--display chart` validates + TTY-gates but still renders log output (chart arrives in US1).
 
@@ -56,15 +56,15 @@ Single Go module at repo root: `cmd/pinger/`, `internal/monitor/`. No `src/` lay
 
 ### Tests for User Story 1 ⚠️ (write first, ensure they FAIL)
 
-- [ ] T008 [US1] Test `chartReporter` renders a combined chart containing every target's legend label and a plotted line, by feeding synthetic `targetCycle` rows and rendering to a `bytes.Buffer` with a fixed injected size, in `internal/monitor/reporter_test.go`. Include a 10-target case asserting 10 distinct legends render (SC-002).
-- [ ] T009 [US1] Test failure handling + rolling window in `internal/monitor/reporter_test.go`: a cycle where a target failed stores `math.NaN()` for that series (never `0`), and appending more than `width` points caps the buffer and drops the oldest.
-- [ ] T010 [US1] Integration test in `internal/monitor/monitor_test.go`: `monitor.Run` in chart mode with a fake prober, injected writer + size func, `SkipPrivilegeCheck`, and tiny `--duration` → output contains the alternate-screen enter/leave sequences and, after leave, the final text summary (FR-011 / SC-004).
+- [X] T008 [US1] Test `chartReporter` renders a combined chart containing every target's legend label and a plotted line, by feeding synthetic `targetCycle` rows and rendering to a `bytes.Buffer` with a fixed injected size, in `internal/monitor/reporter_test.go`. Include a 10-target case asserting 10 distinct legends render (SC-002).
+- [X] T009 [US1] Test failure handling + rolling window in `internal/monitor/reporter_test.go`: a cycle where a target failed stores `math.NaN()` for that series (never `0`), and appending more than `width` points caps the buffer and drops the oldest.
+- [X] T010 [US1] Integration test in `internal/monitor/monitor_test.go`: `monitor.Run` in chart mode with a fake prober, injected writer + size func, `SkipPrivilegeCheck`, and tiny `--duration` → output contains the alternate-screen enter/leave sequences and, after leave, the final text summary (FR-011 / SC-004).
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Implement `chartReporter` in `internal/monitor/reporter.go`: per-target ordered rolling buffers appending `CycleMs` each cycle (`math.NaN()` when nil → gap), render via `asciigraph.PlotMany` with `SeriesColors`, `SeriesLegends` (target labels), `Width` (from injected size func), `Height`, `Caption`; write to injected `io.Writer`. Define a fixed palette of ≥10 distinct `asciigraph` colors (cycled if targets exceed palette length) so all 10 max targets stay distinguishable (SC-002). (depends T003)
-- [ ] T012 [US1] In `chartReporter` (`internal/monitor/reporter.go`): enter alternate screen + hide cursor on first render; on `final`, leave alternate screen + show cursor, then print the same text summary as `logReporter` (FR-011); re-query size each redraw so resize is handled. (depends T011)
-- [ ] T013 [US1] In `internal/monitor/monitor.go`: add an internal `run(...)` seam that accepts the output `io.Writer` and a size function (default `os.Stdout` + `term.GetSize`), and branch reporter construction — `chart` → `chartReporter`, `log` → `logReporter`; `Run` delegates to it. (depends T006, T011, T012)
+- [X] T011 [US1] Implement `chartReporter` in `internal/monitor/reporter.go`: per-target ordered rolling buffers appending `CycleMs` each cycle (`math.NaN()` when nil → gap), render via `asciigraph.PlotMany` with `SeriesColors`, `SeriesLegends` (target labels), `Width` (from injected size func), `Height`, `Caption`; write to injected `io.Writer`. Define a fixed palette of ≥10 distinct `asciigraph` colors (cycled if targets exceed palette length) so all 10 max targets stay distinguishable (SC-002). (depends T003)
+- [X] T012 [US1] In `chartReporter` (`internal/monitor/reporter.go`): enter alternate screen + hide cursor on first render; on `final`, leave alternate screen + show cursor, then print the same text summary as `logReporter` (FR-011); re-query size each redraw so resize is handled. (depends T011)
+- [X] T013 [US1] In `internal/monitor/monitor.go`: add an internal `run(...)` seam that accepts the output `io.Writer` and a size function (default `os.Stdout` + `term.GetSize`), and branch reporter construction — `chart` → `chartReporter`, `log` → `logReporter`; `Run` delegates to it. (depends T006, T011, T012)
 
 **Checkpoint**: chart mode is fully functional and independently testable; MVP deliverable complete.
 
@@ -78,12 +78,12 @@ Single Go module at repo root: `cmd/pinger/`, `internal/monitor/`. No `src/` lay
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T014 [US2] Golden test in `internal/monitor/reporter_test.go`: `logReporter.cycle` and `logReporter.final` produce output byte-identical to the pre-feature format (per-cycle `[ts] label sent=N errors=N avg_rtt=Xms` with `sent==0` skip; per-target `TOTAL` lines; trailing `monitor stopped`).
-- [ ] T015 [US2] Integration test in `internal/monitor/monitor_test.go`: a run with default options and a run with `Display: log` (fake prober, injected writer) produce identical output (SC-005); additionally assert the JSONL records written are byte-identical between `Display: log` and `Display: chart` runs over the same fake-prober sequence (FR-010).
+- [X] T014 [US2] Golden test in `internal/monitor/reporter_test.go`: `logReporter.cycle` and `logReporter.final` produce output byte-identical to the pre-feature format (per-cycle `[ts] label sent=N errors=N avg_rtt=Xms` with `sent==0` skip; per-target `TOTAL` lines; trailing `monitor stopped`).
+- [X] T015 [US2] Integration test in `internal/monitor/monitor_test.go`: a run with default options and a run with `Display: log` (fake prober, injected writer) produce identical output (SC-005); additionally assert the JSONL records written are byte-identical between `Display: log` and `Display: chart` runs over the same fake-prober sequence (FR-010).
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] If T014/T015 reveal any drift, correct the `logReporter` format strings in `internal/monitor/reporter.go` to match the original output exactly. (verification-driven; no change if already identical)
+- [X] T016 [US2] If T014/T015 reveal any drift, correct the `logReporter` format strings in `internal/monitor/reporter.go` to match the original output exactly. (verification-driven; no change if already identical)
 
 **Checkpoint**: log parity locked; US1 and US2 both pass independently.
 
@@ -97,12 +97,12 @@ Single Go module at repo root: `cmd/pinger/`, `internal/monitor/`. No `src/` lay
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T017 [US3] CLI test in `cmd/pinger/main_test.go`: executing the monitor command with `--json` returns a non-nil (unknown-flag) error and does not start probing (FR-008 / SC-006).
-- [ ] T018 [US3] Table-driven test for `resolveDisplay` in `internal/monitor/reporter_test.go`: `log`/`chart` on TTY succeed; unknown value errors naming valid values (FR-009); `chart` + non-TTY errors pointing to `--display log` (FR-013).
+- [X] T017 [US3] CLI test in `cmd/pinger/main_test.go`: executing the monitor command with `--json` returns a non-nil (unknown-flag) error and does not start probing (FR-008 / SC-006).
+- [X] T018 [US3] Table-driven test for `resolveDisplay` in `internal/monitor/reporter_test.go`: `log`/`chart` on TTY succeed; unknown value errors naming valid values (FR-009); `chart` + non-TTY errors pointing to `--display log` (FR-013).
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Grep-verify and remove any remaining `JSONOutput`, `--json`, or per-cycle `encoding/json` console references in `internal/monitor/monitor.go` and `cmd/pinger/main.go` (the `report` command's `--json` in `cmd/pinger/main.go` MUST remain — FR-012).
+- [X] T019 [US3] Grep-verify and remove any remaining `JSONOutput`, `--json`, or per-cycle `encoding/json` console references in `internal/monitor/monitor.go` and `cmd/pinger/main.go` (the `report` command's `--json` in `cmd/pinger/main.go` MUST remain — FR-012).
 
 **Checkpoint**: all three stories independently functional and tested.
 
@@ -110,11 +110,11 @@ Single Go module at repo root: `cmd/pinger/`, `internal/monitor/`. No `src/` lay
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T020 [P] Check `README.md` (and any docs) for `monitor --json` references; update to `--display log|chart`. Leave `report --json` references intact.
-- [ ] T021 [US1] Terminal-resize unit test in `internal/monitor/reporter_test.go`: a size func returning a changed width on a later render adapts the rolling window without panic.
-- [ ] T022 Run the `quickstart.md` verification matrix manually: build; `--display chart` on a TTY; `--display chart` piped → exit 1; `--json` → exit 1; Ctrl-C restores terminal + prints summary.
-- [ ] T023 [P] Record the required MAJOR version bump (breaking `--json` removal, Constitution III) in release notes / `CHANGELOG`, and confirm the next tag reflects it before `goreleaser` runs.
-- [ ] T024 Final gates: `golangci-lint run`, `go test ./...`, and `go test -tags integration ./...` (privileged) all green.
+- [X] T020 [P] Check `README.md` (and any docs) for `monitor --json` references; update to `--display log|chart`. Leave `report --json` references intact.
+- [X] T021 [US1] Terminal-resize unit test in `internal/monitor/reporter_test.go`: a size func returning a changed width on a later render adapts the rolling window without panic.
+- [X] T022 Run the `quickstart.md` verification matrix manually: build; `--display chart` on a TTY; `--display chart` piped → exit 1; `--json` → exit 1; Ctrl-C restores terminal + prints summary.
+- [X] T023 [P] Record the required MAJOR version bump (breaking `--json` removal, Constitution III) in release notes / `CHANGELOG`, and confirm the next tag reflects it before `goreleaser` runs.
+- [X] T024 Final gates: `golangci-lint run`, `go test ./...`, and `go test -tags integration ./...` (privileged) all green.
 
 ---
 

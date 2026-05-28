@@ -11,6 +11,7 @@ import (
 	"github.com/richardcase/pinger/internal/report"
 	"github.com/richardcase/pinger/internal/store"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 var cfgFile string
@@ -32,7 +33,7 @@ func init() {
 func newMonitorCmd() *cobra.Command {
 	var (
 		duration   string
-		jsonOutput bool
+		display    string
 		outputFile string
 	)
 	cmd := &cobra.Command{
@@ -47,7 +48,12 @@ func newMonitorCmd() *cobra.Command {
 				return err
 			}
 
-			opts := monitor.Options{JSONOutput: jsonOutput, OutputFile: outputFile}
+			mode, err := monitor.ResolveDisplay(display, term.IsTerminal(int(os.Stdout.Fd())))
+			if err != nil {
+				return err
+			}
+
+			opts := monitor.Options{Display: mode, OutputFile: outputFile}
 			if duration != "" {
 				d, err := time.ParseDuration(duration)
 				if err != nil {
@@ -66,7 +72,7 @@ func newMonitorCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&duration, "duration", "", "run for this long then exit (e.g. 30s, 5m, 1h)")
-	cmd.Flags().BoolVar(&jsonOutput, "json", false, "emit per-cycle summaries as JSON")
+	cmd.Flags().StringVar(&display, "display", "log", "terminal output mode: log or chart")
 	cmd.Flags().StringVar(&outputFile, "output", "", "write results to this file (default: auto-named daily file in data_dir)")
 	return cmd
 }

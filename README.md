@@ -69,14 +69,21 @@ sudo pinger monitor --config pinger.toml
 # Run for a fixed duration
 sudo pinger monitor --config pinger.toml --duration 1h
 
-# Emit cycle summaries as JSON to stdout (useful for piping/logging)
-sudo pinger monitor --config pinger.toml --json
+# Watch RTT live as a realtime ASCII chart (requires an interactive terminal)
+sudo pinger monitor --config pinger.toml --display chart
 
 # Write data to a specific file instead of daily rotation
 sudo pinger monitor --config pinger.toml --output /tmp/probes.jsonl
 ```
 
-Stop with `Ctrl-C` or `SIGTERM`; the process drains the current cycle before exiting.
+Terminal output mode is selected with `--display`:
+
+- `--display log` (default) — one text summary line per target each cycle.
+- `--display chart` — a continuously-updating combined RTT line chart (one colored series per target; failed probes render as gaps). Requires a TTY; errors out when piped or redirected.
+
+Structured per-cycle JSON on stdout (the old `monitor --json`) has been **removed**. Structured data still lives in the daily JSONL files, and `pinger report --json` is unchanged.
+
+Stop with `Ctrl-C` or `SIGTERM`; the process drains the current cycle, restores the terminal (chart mode), and prints the final per-target summary before exiting.
 
 ### Report
 

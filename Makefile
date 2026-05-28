@@ -13,6 +13,9 @@ build:
 lint:
 	golangci-lint run ./...
 
+lint-fix:
+	golangci-lint run --fix ./...
+
 test:
 	go test ./...
 
@@ -22,3 +25,6 @@ coverage:
 
 clean:
 	rm -f $(BINARY) coverage.out
+
+release-local:
+	goreleaser release --snapshot --clean

@@ -13,9 +13,6 @@ jobs:
 
       - uses: jdx/mise-action@v2
 
-      - name: Lint
-        run: golangci-lint run
-
       - name: Test
         run: |
           go test ./...

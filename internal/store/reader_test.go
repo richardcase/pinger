@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/richardcase/pinger/internal/store"
 	"github.com/richardcase/pinger/internal/report"
+	"github.com/richardcase/pinger/internal/store"
 )
 
 // BenchmarkReport100k benchmarks full JSONL scan + aggregation for 100k records.

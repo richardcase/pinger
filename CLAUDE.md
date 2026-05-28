@@ -12,7 +12,7 @@ Module: `github.com/richardcase/pinger`
 |------|---------|
 | `cmd/pinger/` | CLI entry point (Cobra) |
 | `internal/config/` | TOML config loading and validation (Viper) |
-| `internal/probe/` | ICMP probe interface + go-ping implementation |
+| `internal/probe/` | ICMP probe interface + pro-bing implementation |
 | `internal/store/` | JSONL reader/writer; `ProbeResult` struct |
 | `internal/report/` | Aggregation logic; table and JSON formatters |
 | `internal/monitor/` | Main probe loop, signal handling, cycle orchestration |

@@ -122,7 +122,6 @@ func writeFixture(t *testing.T, dir string, records []store.ProbeResult) {
 }
 
 func rttPtr(v float64) *float64 { return &v }
-func strPtr(v string) *string   { return &v }
 
 func TestReaderScanAllFiles(t *testing.T) {
 	dir := t.TempDir()

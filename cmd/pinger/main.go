@@ -5,12 +5,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/spf13/cobra"
 	"github.com/richardcase/pinger/internal/config"
 	"github.com/richardcase/pinger/internal/monitor"
 	"github.com/richardcase/pinger/internal/probe"
 	"github.com/richardcase/pinger/internal/report"
 	"github.com/richardcase/pinger/internal/store"
+	"github.com/spf13/cobra"
 )
 
 var cfgFile string

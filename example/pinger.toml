@@ -1,0 +1,11 @@
+interval = "2s"
+timeout  = "5s"
+data_dir = "."
+
+[[targets]]
+label   = "microsoft"
+address = "www.microsoft.com"
+
+[[targets]]
+label   = "google"
+address = "www.google.com"

@@ -1,0 +1,36 @@
+# Go
+target/
+*.exe
+*.test
+*.out
+vendor/
+*.rs.bk
+
+# Build output
+/pinger
+/dist/
+
+# Environment
+.env
+.env.*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Logs
+*.log
+
+# Test coverage
+coverage.out
+coverage.html
+
+# Data files generated at runtime
+pinger-*.jsonl

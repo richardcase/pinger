@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	probing "github.com/go-ping/ping"
+	probing "github.com/prometheus-community/pro-bing"
 	"github.com/richardcase/pinger/internal/store"
 )
 

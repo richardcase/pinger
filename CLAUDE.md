@@ -12,7 +12,7 @@ Module: `github.com/richardcase/pinger`
 |------|---------|
 | `cmd/pinger/` | CLI entry point (Cobra) |
 | `internal/config/` | TOML config loading and validation (Viper) |
-| `internal/probe/` | ICMP probe interface + go-ping implementation |
+| `internal/probe/` | ICMP probe interface + pro-bing implementation |
 | `internal/store/` | JSONL reader/writer; `ProbeResult` struct |
 | `internal/report/` | Aggregation logic; table and JSON formatters |
 | `internal/monitor/` | Main probe loop, signal handling, cycle orchestration |
@@ -44,5 +44,5 @@ GoReleaser on `vX.Y.Z` git tag. Produces cross-compiled binaries for Linux/macOS
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-specs/001-periodic-ping-monitor/plan.md
+specs/002-monitor-chart-output/plan.md
 <!-- SPECKIT END -->

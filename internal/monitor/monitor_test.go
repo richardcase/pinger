@@ -1,9 +1,11 @@
 package monitor_test
 
 import (
-	"encoding/json"
+	"bytes"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -141,60 +143,106 @@ func TestMonitorDurationAutoExit(t *testing.T) {
 	assert.Less(t, elapsed, 500*time.Millisecond, "should exit well before 500ms")
 }
 
-// TestMonitorJSONOutput verifies --json flag emits JSON objects per target.
-func TestMonitorJSONOutput(t *testing.T) {
-	dir := t.TempDir()
-	fp := &fakeProber{
-		results: map[string]store.ProbeResult{
-			"gw": {Target: "gw", Success: true, RTTMs: rttPtr(1.5)},
-		},
-	}
-	cfg := &config.Config{
-		Interval: 50 * time.Millisecond,
+// oneCycleCfg builds a config whose interval far exceeds the run duration, so a
+// single primed cycle runs and the cycle count is deterministic.
+func oneCycleCfg(dir string, targets ...config.Target) *config.Config {
+	return &config.Config{
+		Interval: time.Hour,
 		Timeout:  5 * time.Second,
 		DataDir:  dir,
-		Targets:  []config.Target{{Label: "gw", Address: "127.0.0.1"}},
-	}
-
-	old := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	err := monitor.Run(cfg, fp, monitor.Options{Duration: 80 * time.Millisecond, SkipPrivilegeCheck: true, JSONOutput: true})
-	require.NoError(t, err)
-
-	w.Close()
-	os.Stdout = old
-	buf := make([]byte, 4096)
-	n, _ := r.Read(buf)
-	output := string(buf[:n])
-
-	// Each line should be valid JSON.
-	lines := splitLines(output)
-	for _, line := range lines {
-		if line == "" {
-			continue
-		}
-		var obj map[string]interface{}
-		assert.NoError(t, json.Unmarshal([]byte(line), &obj), "line should be valid JSON: %q", line)
+		Targets:  targets,
 	}
 }
 
-func splitLines(s string) []string {
-	var out []string
-	cur := ""
-	for _, c := range s {
-		if c == '\n' {
-			out = append(out, cur)
-			cur = ""
-		} else {
-			cur += string(c)
-		}
+// fixedProber returns a constant ProbeResult (fixed timestamp) so JSONL bytes are
+// reproducible across runs.
+type fixedProber struct{ results map[string]store.ProbeResult }
+
+func (f *fixedProber) Probe(target string, _ time.Duration) store.ProbeResult {
+	if r, ok := f.results[target]; ok {
+		r.Target = target
+		return r
 	}
-	if cur != "" {
-		out = append(out, cur)
+	reason := "unconfigured"
+	return store.ProbeResult{Target: target, Success: false, FailReason: &reason}
+}
+
+// TestMonitorChartModeAltScreenAndSummary verifies chart mode emits the alternate-screen
+// enter/leave sequences and, after leaving, the final text summary (FR-011 / SC-004).
+func TestMonitorChartModeAltScreenAndSummary(t *testing.T) {
+	dir := t.TempDir()
+	fp := &fakeProber{results: map[string]store.ProbeResult{
+		"gw": {Target: "gw", Success: true, RTTMs: rttPtr(1.5)},
+	}}
+	cfg := oneCycleCfg(dir, config.Target{Label: "gw", Address: "127.0.0.1"})
+
+	var buf bytes.Buffer
+	err := monitor.RunWithWriter(cfg, fp,
+		monitor.Options{Display: monitor.DisplayChart, Duration: 30 * time.Millisecond, SkipPrivilegeCheck: true},
+		&buf, 80, 24)
+	require.NoError(t, err)
+
+	out := buf.String()
+	enter := "\x1b[?1049h"
+	leave := "\x1b[?1049l"
+	assert.Contains(t, out, enter, "should enter alternate screen")
+	assert.Contains(t, out, leave, "should leave alternate screen")
+	leaveIdx := strings.Index(out, leave)
+	summaryIdx := strings.Index(out, "monitor stopped")
+	require.NotEqual(t, -1, summaryIdx, "final summary must be present")
+	assert.Greater(t, summaryIdx, leaveIdx, "summary must print after leaving alt screen")
+	assert.Contains(t, out[leaveIdx:], "gw TOTAL", "final summary lists targets")
+}
+
+var tsBracket = regexp.MustCompile(`\[[^\]]*\]`)
+
+// TestMonitorLogDefaultParity verifies default options and Display: log produce
+// identical console output (SC-005) and that JSONL is byte-identical across log and
+// chart modes (FR-010).
+func TestMonitorLogDefaultParity(t *testing.T) {
+	mkProber := func() *fixedProber {
+		return &fixedProber{results: map[string]store.ProbeResult{
+			"gw": {Timestamp: time.Date(2026, 5, 27, 10, 0, 0, 0, time.UTC), Target: "gw", Success: true, RTTMs: rttPtr(1.5)},
+		}}
 	}
-	return out
+	target := config.Target{Label: "gw", Address: "127.0.0.1"}
+	opts := func(d monitor.DisplayMode) monitor.Options {
+		return monitor.Options{Display: d, Duration: 30 * time.Millisecond, SkipPrivilegeCheck: true}
+	}
+
+	// Console parity: default (zero-value Display == log) vs explicit log.
+	dirA, dirB := t.TempDir(), t.TempDir()
+	var defBuf, logBuf bytes.Buffer
+	require.NoError(t, monitor.RunWithWriter(oneCycleCfg(dirA, target), mkProber(),
+		monitor.Options{Duration: 30 * time.Millisecond, SkipPrivilegeCheck: true}, &defBuf, 80, 24))
+	require.NoError(t, monitor.RunWithWriter(oneCycleCfg(dirB, target), mkProber(),
+		opts(monitor.DisplayLog), &logBuf, 80, 24))
+
+	norm := func(s string) string { return tsBracket.ReplaceAllString(s, "[TS]") }
+	assert.Equal(t, norm(defBuf.String()), norm(logBuf.String()),
+		"default and --display log output must be identical")
+
+	// JSONL parity: log vs chart over the same fixed-prober sequence.
+	dirLog, dirChart := t.TempDir(), t.TempDir()
+	var sink bytes.Buffer
+	require.NoError(t, monitor.RunWithWriter(oneCycleCfg(dirLog, target), mkProber(),
+		opts(monitor.DisplayLog), &sink, 80, 24))
+	sink.Reset()
+	require.NoError(t, monitor.RunWithWriter(oneCycleCfg(dirChart, target), mkProber(),
+		opts(monitor.DisplayChart), &sink, 80, 24))
+
+	assert.Equal(t, readOnlyJSONL(t, dirLog), readOnlyJSONL(t, dirChart),
+		"JSONL records must be byte-identical across log and chart modes")
+}
+
+func readOnlyJSONL(t *testing.T, dir string) []byte {
+	t.Helper()
+	files, err := filepath.Glob(filepath.Join(dir, "pinger-*.jsonl"))
+	require.NoError(t, err)
+	require.Len(t, files, 1)
+	b, err := os.ReadFile(files[0])
+	require.NoError(t, err)
+	return b
 }
 
 // TestMonitorConcurrency verifies a slow target does not delay a fast target.

@@ -172,10 +172,19 @@ test "matchReply v4 parses past IP header" {
     try std.testing.expect(!matchReply(&buf, false, 0x9999));
 }
 
-test "probe loopback success (integration)" {
+test "probe IPv4 loopback success (integration)" {
     if (!build_options.integration) return error.SkipZigTest;
     const gpa = std.testing.allocator;
     const r = probe(gpa, "127.0.0.1", 2 * std.time.ns_per_s);
+    defer if (r.fail_reason) |fr| gpa.free(fr);
+    try std.testing.expect(r.success);
+    try std.testing.expect(r.rtt_ms.? >= 0);
+}
+
+test "probe IPv6 loopback success (integration)" {
+    if (!build_options.integration) return error.SkipZigTest;
+    const gpa = std.testing.allocator;
+    const r = probe(gpa, "::1", 2 * std.time.ns_per_s);
     defer if (r.fail_reason) |fr| gpa.free(fr);
     try std.testing.expect(r.success);
     try std.testing.expect(r.rtt_ms.? >= 0);

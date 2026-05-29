@@ -13,11 +13,16 @@ jobs:
 
       - uses: jdx/mise-action@v2
 
-      - name: Test
-        run: |
-          go test ./...
-          go test -cover -coverprofile=coverage.out -covermode=atomic ./internal/...
-          go tool cover -func=coverage.out | awk '/total/ { pct = $3+0; if (pct < 80) { print "Coverage " pct "% is below 80% threshold"; exit 1 } }'
+      - name: Unit tests
+        run: zig build test
 
-      - name: Benchmark
-        run: go test -bench=. -benchmem ./...
+      - name: Integration tests (raw ICMP, loopback)
+        run: |
+          zig build itest -Dintegration
+          sudo ./zig-out/bin/pinger-itest
+
+      - name: Cross-compile matrix
+        run: |
+          for t in x86_64-linux-musl aarch64-linux-musl x86_64-macos aarch64-macos; do
+            zig build -Dtarget=$t -Doptimize=ReleaseFast
+          done

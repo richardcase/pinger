@@ -17,10 +17,31 @@ jobs:
 
       - uses: jdx/mise-action@v2
 
-      - name: Release
-        uses: goreleaser/goreleaser-action@v6
+      - name: Build release artifacts
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          declare -A names=(
+            [x86_64-linux-musl]=linux_amd64
+            [aarch64-linux-musl]=linux_arm64
+            [x86_64-macos]=darwin_amd64
+            [aarch64-macos]=darwin_arm64
+          )
+          for t in "${!names[@]}"; do
+            zig build -Dtarget="$t" -Doptimize=ReleaseFast -Dversion="$VERSION"
+            d="pinger_${VERSION}_${names[$t]}"
+            mkdir -p "$d"
+            cp zig-out/bin/pinger "$d/pinger"
+            cp README.md "$d/" 2>/dev/null || true
+            tar -czf "dist/${d}.tar.gz" "$d"
+            rm -rf "$d"
+          done
+          (cd dist && sha256sum *.tar.gz > sha256sums.txt)
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
         with:
-          version: latest
-          args: release --clean
+          files: dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,30 +1,34 @@
-BINARY   := pinger
-MODULE   := github.com/richardcase/pinger
-GOFLAGS  := -trimpath
-LDFLAGS  := -s -w
+BINARY := pinger
 
-.PHONY: all build lint test coverage clean
+.PHONY: all build test itest lint fmt fmt-fix clean release-local
 
 all: build
 
 build:
-	go build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BINARY) ./cmd/pinger
-
-lint:
-	golangci-lint run ./...
-
-lint-fix:
-	golangci-lint run --fix ./...
+	zig build -Doptimize=ReleaseFast
 
 test:
-	go test ./...
+	zig build test
 
-coverage:
-	go test -coverprofile=coverage.out ./...
-	go tool cover -func=coverage.out
+# Integration tests open raw ICMP sockets, so they need root/CAP_NET_RAW and
+# are run as a standalone binary (the `zig build` test runner can't host them).
+itest:
+	zig build itest -Dintegration
+	sudo ./zig-out/bin/pinger-itest
+
+lint: fmt
+
+fmt:
+	zig fmt --check build.zig src
+
+fmt-fix:
+	zig fmt build.zig src
 
 clean:
-	rm -f $(BINARY) coverage.out
+	rm -rf zig-out .zig-cache $(BINARY)
 
+# Build the full cross-compile matrix locally (linux/macos x amd64/arm64).
 release-local:
-	goreleaser release --snapshot --clean
+	for t in x86_64-linux-musl aarch64-linux-musl x86_64-macos aarch64-macos; do \
+		zig build -Dtarget=$$t -Doptimize=ReleaseFast; \
+	done

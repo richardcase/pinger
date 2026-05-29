@@ -1,4 +1,2 @@
 [tools]
-go = "1.26"
-"go:github.com/golangci/golangci-lint/cmd/golangci-lint" = "1.64.8"
-goreleaser = "2.16"
+zig = "0.16.0"

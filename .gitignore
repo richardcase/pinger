@@ -10,6 +10,11 @@ vendor/
 /pinger
 /dist/
 
+# Zig
+.zig-cache/
+zig-out/
+zig-pkg/
+
 # Environment
 .env
 .env.*
